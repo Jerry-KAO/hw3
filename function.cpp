@@ -147,16 +147,17 @@ T BinaryHeap<T>::get_min(){
 
 
 u32 currentTime = 0;
+int endTime_dummy = 0;
 
 
 template < class T >
 int Manager<T>::finish_in_time(u32 costTime,u32 deadLine)
 {
-    if(taQue.size() < 1){
-        return 0;
+    if(endTime_dummy == 0){
+        return (costTime + taQue.get_min().get_time() < deadLine);
     }
     else{
-        return (costTime + taQue.get_min().get_time() < deadLine) and (taQue.get_min().get_time() < endTime - costTime);
+        return ((costTime + taQue.get_min().get_time()) < deadLine) and ((taQue.get_min().get_time() + costTime) < endTime);
     }
 };
 
@@ -165,6 +166,7 @@ template < class T >
 void Manager<T>::cmd_set_endTime(u32 endTime)
 {
     if(endTime > currentTime){
+        endTime_dummy = 1;
         Manager::endTime = endTime;
         cout << "SET_ENDTIME SUCCESS" << endl;
     }
@@ -176,7 +178,33 @@ void Manager<T>::cmd_set_endTime(u32 endTime)
 template < class T >
 void Manager<T>::cmd_add_task(string taskName, u32 costTime)
 {
-    if(finish_in_time(costTime, endTime)){
+    if(taQue.size() < 1){
+        cout << "ADD_TASK " << taskName << ": FAIL" << endl;
+    }
+    else if(endTime_dummy == 0){
+        u32 tmp_time = taQue.get_min().get_time() + costTime;
+        std::string tmp_id = taQue.get_min().get_id();
+        if(tmp_time > currentTime){currentTime = tmp_time;}
+        Node newNode(tmp_id, tmp_time);
+        taQue.del_min();
+        taQue.insert(newNode);
+        cout << "ADD_TASK " << taskName << ": " << tmp_id << " AT " << tmp_time << endl;
+    }
+    else{
+        if((taQue.get_min().get_time() + costTime) < endTime){
+            u32 tmp_time = taQue.get_min().get_time() + costTime;
+            std::string tmp_id = taQue.get_min().get_id();
+            if(tmp_time > currentTime){currentTime = tmp_time;}
+            Node newNode(tmp_id, tmp_time);
+            taQue.del_min();
+            taQue.insert(newNode);
+            cout << "ADD_TASK " << taskName << ": " << tmp_id << " AT " << tmp_time << endl;
+        }
+        else{
+            cout << "ADD_TASK " << taskName << ": FAIL" << endl;
+        }
+    }
+    /*if(finish_in_time(costTime, endTime)){
         u32 tmp_time = taQue.get_min().get_time() + costTime;
         std::string tmp_id = taQue.get_min().get_id();
         if(tmp_time > currentTime){currentTime = tmp_time;}
@@ -187,21 +215,32 @@ void Manager<T>::cmd_add_task(string taskName, u32 costTime)
     }
     else{
         cout << "ADD_TASK " << taskName << ": FAIL" << endl;
-    }
+    }*/
 };    // time complexity: O(log n)
 
 template < class T >
 void Manager<T>::cmd_add_ta(std::string id, u32 begin)
 {
-    if(begin < endTime){
+    //沒有設定endTime時
+    if(endTime_dummy == 0){
         if(begin > currentTime){currentTime = begin;}
         Node newTA = Node(id, begin);
         taQue.insert(newTA);
         cout << "ADD_TA SUCCESS" << endl;
     }
+    //有設定endTime時
     else{
-        cout << "ADD_TA FAIL" << endl;
+        if(begin < endTime){
+            if(begin > currentTime){currentTime = begin;}
+            Node newTA = Node(id, begin);
+            taQue.insert(newTA);
+            cout << "ADD_TA SUCCESS" << endl;
+        }
+        else{
+            cout << "ADD_TA FAIL" << endl;
+        }
     }
+
 };
 
 template < class T >
@@ -231,8 +270,6 @@ void Manager<T>::result()
 };
 
 template < class T >
-Manager<T>::Manager(){
-	endTime = 4294967295;
-};
+Manager<T>::Manager(){};
 
 template class Manager<Node>;
