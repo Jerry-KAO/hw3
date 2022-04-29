@@ -80,8 +80,9 @@ void operator+= (Node& node1,u32 time){
 
 template < class T >
 u32 BinaryHeap<T>::parent_idx(u32 idx){
-    if(idx != 1) return idx / 2;
-    else return 1;
+    //if(idx != 1)
+        return idx / 2;
+    //else return 1;
 };
 
 template < class T >
@@ -97,6 +98,17 @@ u32 BinaryHeap<T>::right_idx(u32 idx){
 };
 
 template < class T >
+void BinaryHeap<T>::heapify_up(int idx){
+    if(idx != 1){
+        if(heap[idx] < heap[parent_idx(idx)]){
+            std::swap(heap[idx], heap[parent_idx(idx)]);
+            heapify_up(parent_idx(idx));
+        }
+    }
+
+};
+
+template < class T >
 void BinaryHeap<T>::heapify_down(int idx){
     u32 left = left_idx(idx);
     u32 right = right_idx(idx);
@@ -108,7 +120,6 @@ void BinaryHeap<T>::heapify_down(int idx){
         smallest = right;
     }
     if(smallest != idx){
-        cout << "SWITCH" << endl;
         std::swap(heap[idx], heap[smallest]);
         heapify_down(smallest);
     }
@@ -126,38 +137,48 @@ void BinaryHeap<T>::insert(T element){
         heap.push_back(element);
     }
     heap.push_back(element);
-    u32 idx1 = heap.size()-1;
-    while(heap[idx1] < heap[parent_idx(idx1)]){
+    heapify_up(heap.size()-1);
+    /*u32 idx1 = heap.size()-1;
+    while(heap[idx1] < heap[parent_idx(idx1)] and (idx1 != 1)){
         std::swap(heap[idx1], heap[parent_idx(idx1)]);
         idx1 = parent_idx(idx1);
-    }
+    }*/
 };
 
 template < class T >
 void BinaryHeap<T>::del_min(){
-    std::swap(heap[heap.size()-1], heap[1]);
-    heap.pop_back();
-    heapify_down(1);
+    if(heap.size() > 2){
+        std::swap(heap[heap.size()-1], heap[1]);
+        heap.pop_back();
+        heapify_down(1);
+    }
+    else{
+        while(heap.size() != 0){
+            heap.pop_back();
+        }
+    }
 };
 
 template < class T >
 T BinaryHeap<T>::get_min(){
-    if(heap.size() > 1) return heap[1];
+    //if(heap.size() != 0)
+    return heap[1];
 };
 
 
 u32 currentTime = 0;
-int endTime_dummy = 0;
+u32 endTime_dummy = 0;
 
 
 template < class T >
 int Manager<T>::finish_in_time(u32 costTime,u32 deadLine)
 {
+    u32 tmpTime = costTime + taQue.get_min().get_time();
     if(endTime_dummy == 0){
-        return (costTime + taQue.get_min().get_time() < deadLine);
+        return tmpTime < deadLine;
     }
     else{
-        return ((costTime + taQue.get_min().get_time()) < deadLine) and ((taQue.get_min().get_time() + costTime) < endTime);
+        return (tmpTime < deadLine) and (tmpTime <= endTime);
     }
 };
 
@@ -165,7 +186,7 @@ int Manager<T>::finish_in_time(u32 costTime,u32 deadLine)
 template < class T >
 void Manager<T>::cmd_set_endTime(u32 endTime)
 {
-    if(endTime > currentTime){
+    if(endTime >= currentTime){
         endTime_dummy = 1;
         Manager::endTime = endTime;
         cout << "SET_ENDTIME SUCCESS" << endl;
@@ -178,7 +199,7 @@ void Manager<T>::cmd_set_endTime(u32 endTime)
 template < class T >
 void Manager<T>::cmd_add_task(string taskName, u32 costTime)
 {
-    if(taQue.size() < 1){
+    if(taQue.size() ==0){
         cout << "ADD_TASK " << taskName << ": FAIL" << endl;
     }
     else if(endTime_dummy == 0){
@@ -191,7 +212,7 @@ void Manager<T>::cmd_add_task(string taskName, u32 costTime)
         cout << "ADD_TASK " << taskName << ": " << tmp_id << " AT " << tmp_time << endl;
     }
     else{
-        if((taQue.get_min().get_time() + costTime) < endTime){
+        if((taQue.get_min().get_time() + costTime) <= endTime){
             u32 tmp_time = taQue.get_min().get_time() + costTime;
             std::string tmp_id = taQue.get_min().get_id();
             if(tmp_time > currentTime){currentTime = tmp_time;}
@@ -246,21 +267,37 @@ void Manager<T>::cmd_add_ta(std::string id, u32 begin)
 template < class T >
 void Manager<T>::cmd_check_schedule(u32 costTime,u32 deadLine)
 {
-    if(taQue.size() < 1){
+    if(taQue.size() == 0){
         cout << "CHECK_SCHEDULE: NO TA WARNING!" << endl;
     }
-    else if(finish_in_time(costTime, deadLine)){
+    else if(endTime_dummy == 0){
+        if(costTime + taQue.get_min().get_time() < deadLine){
+            cout << "CHECK_SCHEDULE: CAN FINISH!" << endl;
+        }
+        else{
+            cout << "CHECK_SCHEDULE: OVERTIME WARNING!" << endl;
+        }
+    }
+    else{
+        if(costTime + taQue.get_min().get_time() < deadLine && costTime + taQue.get_min().get_time() <= endTime){
+            cout << "CHECK_SCHEDULE: CAN FINISH!" << endl;
+        }
+        else{
+            cout << "CHECK_SCHEDULE: OVERTIME WARNING!" << endl;
+        }
+    }
+    /*else if(finish_in_time(costTime, deadLine)){ //finish_in_time(costTime, deadLine)
         cout << "CHECK_SCHEDULE: CAN FINISH!" << endl;
     }
     else{
         cout << "CHECK_SCHEDULE: OVERTIME WARNING!" << endl;
-    }
+    }*/
 };
 
 template < class T >
 void Manager<T>::result()
 {
-    if(taQue.size() > 1){
+    if(taQue.size() != 0){
         cout << "NUMBER_TA: " << taQue.size()-1 << endl;
         cout << "EARLIEST FINISH TA: " << taQue.get_min().get_id() << " AT " << taQue.get_min().get_time() << endl;
     }
@@ -270,6 +307,6 @@ void Manager<T>::result()
 };
 
 template < class T >
-Manager<T>::Manager(){};
+Manager<T>::Manager():endTime(0){};
 
 template class Manager<Node>;
